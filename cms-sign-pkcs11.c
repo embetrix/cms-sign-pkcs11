@@ -56,7 +56,6 @@ int main(int argc, char **argv)
     if (!eng)
         goto out;
 
-    ENGINE_ctrl_cmd_string(eng, "VERBOSE", NULL, 0);
     ENGINE_ctrl_cmd_string(eng, "MODULE_PATH", MODULE_PATH, 0);
 
     if (!ENGINE_init(eng))
