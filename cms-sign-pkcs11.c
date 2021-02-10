@@ -25,7 +25,7 @@
 #include <openssl/err.h>
 
 #ifdef USE_PKCS11
-#define MODULE_PATH "/usr/lib/opensc-pkcs11.so"
+#define PKCS11_PATH "/usr/lib/x86_64-linux-gnu/engines-1.1/pkcs11.so"
 #endif
 
 int main(int argc, char **argv)
@@ -50,13 +50,24 @@ int main(int argc, char **argv)
 
 #ifdef USE_PKCS11
     ENGINE *eng;
-    ENGINE_load_builtin_engines();
 
-    eng = ENGINE_by_id("pkcs11");
+    ENGINE_load_dynamic();
+    eng = ENGINE_by_id( "dynamic" );
+
     if (!eng)
         goto out;
 
-    ENGINE_ctrl_cmd_string(eng, "MODULE_PATH", MODULE_PATH, 0);
+    if(!ENGINE_ctrl_cmd_string(eng, "SO_PATH", PKCS11_PATH, 0))
+        goto out;
+
+    if(!ENGINE_ctrl_cmd_string(eng, "ID", "pkcs11", 0))
+        goto out;
+
+    if(!ENGINE_ctrl_cmd( eng, "LIST_ADD", 1, NULL, NULL, 0))
+        goto out;
+
+    if(!ENGINE_ctrl_cmd( eng, "LOAD", 1, NULL, NULL, 0))
+        goto out;
 
     if (!ENGINE_init(eng))
         goto out;
