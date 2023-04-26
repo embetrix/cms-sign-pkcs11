@@ -25,7 +25,7 @@
 #include <openssl/err.h>
 
 #ifdef USE_PKCS11
-#define PKCS11_PATH "/usr/lib/x86_64-linux-gnu/engines-1.1/pkcs11.so"
+#define PKCS11_PATH "/usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so"
 #endif
 
 int main(int argc, char **argv)
