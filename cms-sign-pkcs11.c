@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 #endif
 
     /* Read in signing certificate */
-    cbio = BIO_new_file(argv[1], "r");
+    cbio  = BIO_new_file(argv[1], "r");
     scert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
 
 #ifdef USE_PKCS11
@@ -151,6 +151,9 @@ out:
 
     if (kbio)
         BIO_free(kbio);
+
+    if (eng)
+        ENGINE_free(eng);
 
     return ret;
 }
