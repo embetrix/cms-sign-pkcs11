@@ -12,8 +12,8 @@ pkcs11 = pkcs11_section
 
 [pkcs11_section]
 engine_id = pkcs11
-MODULE_PATH = /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
-PIN=123456
+MODULE_PATH = /usr/lib/softhsm/libsofthsm2.so
+PIN=12345
 init = 0
 
 [req]

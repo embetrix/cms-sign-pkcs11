@@ -25,7 +25,8 @@
 #include <openssl/err.h>
 
 #ifdef USE_PKCS11
-#define PKCS11_PATH "/usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so"
+#define SO_PATH "/usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so"
+#define MODULE_PATH  "/usr/lib/softhsm/libsofthsm2.so"
 #endif
 
 int main(int argc, char **argv)
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
     if (!eng)
         goto out;
 
-    if(!ENGINE_ctrl_cmd_string(eng, "SO_PATH", PKCS11_PATH, 0))
+   if(!ENGINE_ctrl_cmd_string(eng, "SO_PATH", SO_PATH, 0))
         goto out;
 
     if(!ENGINE_ctrl_cmd_string(eng, "ID", "pkcs11", 0))
@@ -67,6 +68,9 @@ int main(int argc, char **argv)
         goto out;
 
     if(!ENGINE_ctrl_cmd( eng, "LOAD", 1, NULL, NULL, 0))
+        goto out;
+
+    if(!ENGINE_ctrl_cmd_string(eng, "MODULE_PATH", MODULE_PATH, 0))
         goto out;
 
     if (!ENGINE_init(eng))
@@ -151,9 +155,10 @@ out:
 
     if (kbio)
         BIO_free(kbio);
-
+#ifdef USE_PKCS11
     if (eng)
         ENGINE_free(eng);
+#endif
 
     return ret;
 }
