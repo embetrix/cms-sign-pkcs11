@@ -24,16 +24,52 @@
 #include <openssl/conf.h>
 #include <openssl/err.h>
 
-#ifdef USE_PKCS11
-#define SO_PATH "/usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so"
-#define MODULE_PATH  "/usr/lib/softhsm/libsofthsm2.so"
-#endif
+static EVP_PKEY *read_private_key(const char *private_key_name)
+{
+	EVP_PKEY *private_key = NULL;
+	ENGINE *eng = NULL;
+	BIO *b = NULL;
+
+	if (!strncmp(private_key_name, "pkcs11:", 7)) {
+		ENGINE_load_builtin_engines();
+		eng = ENGINE_by_id("pkcs11");
+		if (!eng) {
+			fprintf(stderr, "Error: Load PKCS#11 ENGINE\n");
+			return NULL;
+		}
+
+		if (!ENGINE_init(eng)) {
+			fprintf(stderr, "Error: ENGINE_init\n");
+			return NULL;
+		}
+
+		private_key = ENGINE_load_private_key(eng, private_key_name,
+						      NULL, NULL);
+
+	} 
+	else {
+		b = BIO_new_file(private_key_name, "rb");
+		if (!b)
+			goto out;
+
+		private_key = PEM_read_bio_PrivateKey(b, NULL, NULL, NULL);
+		BIO_free(b);
+	}
+out:
+	if (!private_key)
+		fprintf(stderr, "Error: failed loading private key %s\n", private_key_name);
+
+	if (eng)
+		ENGINE_free(eng);
+
+	return private_key;
+}
 
 int main(int argc, char **argv)
 {
     int ret = -1;
 
-    BIO *in = NULL, *out = NULL, *cbio = NULL, *kbio = NULL;
+    BIO *in = NULL, *out = NULL, *cbio = NULL;
     X509 *scert = NULL;
     CMS_ContentInfo *cms = NULL;
     EVP_PKEY *sprivkey   = NULL;
@@ -49,54 +85,18 @@ int main(int argc, char **argv)
     ERR_load_crypto_strings();
     ERR_clear_error();
 
-#ifdef USE_PKCS11
-    ENGINE *eng;
-
-    ENGINE_load_dynamic();
-    eng = ENGINE_by_id( "dynamic" );
-
-    if (!eng)
+     /* Read in signing key */
+    sprivkey = read_private_key(argv[2]);
+    if (!sprivkey)
         goto out;
-
-   if(!ENGINE_ctrl_cmd_string(eng, "SO_PATH", SO_PATH, 0))
-        goto out;
-
-    if(!ENGINE_ctrl_cmd_string(eng, "ID", "pkcs11", 0))
-        goto out;
-
-    if(!ENGINE_ctrl_cmd( eng, "LIST_ADD", 1, NULL, NULL, 0))
-        goto out;
-
-    if(!ENGINE_ctrl_cmd( eng, "LOAD", 1, NULL, NULL, 0))
-        goto out;
-
-    if(!ENGINE_ctrl_cmd_string(eng, "MODULE_PATH", MODULE_PATH, 0))
-        goto out;
-
-    if (!ENGINE_init(eng))
-        goto out;
-#endif
 
     /* Read in signing certificate */
     cbio  = BIO_new_file(argv[1], "r");
-    scert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
-
-#ifdef USE_PKCS11
-    /* Use private key from engine*/
-    sprivkey = ENGINE_load_private_key(eng, argv[2], NULL, NULL);
-#else
-    /* Read in private key from file*/
-    kbio = BIO_new_file(argv[2], "r");
-    sprivkey = PEM_read_bio_PrivateKey(kbio, NULL, 0, NULL);
-
-    if (!kbio)
-        goto out;
-#endif
-
     if (!cbio)
         goto out;
 
-    if (!scert || !sprivkey)
+    scert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
+    if (!scert)
         goto out;
 
     /* open content to be signed */
@@ -152,13 +152,6 @@ out:
 
     if (cbio)
         BIO_free(cbio);
-
-    if (kbio)
-        BIO_free(kbio);
-#ifdef USE_PKCS11
-    if (eng)
-        ENGINE_free(eng);
-#endif
 
     return ret;
 }

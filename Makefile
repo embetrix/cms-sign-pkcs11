@@ -1,6 +1,6 @@
-CFLAGS += -Wall -DDEBUG -DUSE_PKCS11
-
-LDFLAGS = -lcrypto
+CFLAGS += -Wall -DDEBUG  -Wno-deprecated-declarations
+LIBS    := -lcrypto
+LDFLAGS :=
 
 TARGET=cms-sign-pkcs11
 
@@ -10,7 +10,7 @@ clean:
 	$(RM) $(TARGET) *.o  *.asn *.sig* 
 
 $(TARGET):
-	$(CC) *.c  -o $@ $(LDFLAGS) $(CFLAGS)$<
+	$(CC) *.c  -o $@ $(LDFLAGS) $(LIBS) $(CFLAGS)$<
 
 .PHONY: all clean
 
